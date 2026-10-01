@@ -140,6 +140,7 @@ python scripts/gen_inputs.py -s example/Si.cif -w opt --potcar-root <你的POTCA
 vasp-skill/
 ├── SKILL.md                     # 行为与路由内核：何时读哪个文件、何时跑哪个脚本
 ├── README.md                    # 本文件
+├── LICENSE                      # MIT 许可证全文
 ├── example/                     # 开箱即用的最小样例
 │   ├── Si.cif / Ag3SbS3.cif     # 输入结构
 │   ├── Si_opt/                  # 对应的 opt 输入文件（INCAR/KPOINTS/POSCAR/POTCAR）
@@ -176,7 +177,7 @@ vasp-skill/
 | 日期 | 类型 | 更新 | 用户价值 |
 | --- | --- | --- | --- |
 | 2026-10-01 | 更名与文档 | skill 由 `vasp-workflow` 更名为 `vasp-skill`（对外展示名 `vasp.skill`）；新增本 README，补齐能力、知识库、脚本与安装说明。 | 名称与文档对齐；新用户在安装前就能看清能力边界、脚本入口和 kebab-case 命名约束。 |
-| 2026-10-01 | 协议 | 新增「开源协议」一节，声明采用 MIT License。 | 明确授权范围：允许商业使用、修改与分发，分发时保留版权与许可声明。 |
+| 2026-10-01 | 协议 | 新增 `LICENSE`（标准 MIT 全文）与 README「开源协议」一节，并注明第三方收录内容不在 MIT 范围内。 | 明确授权范围：允许商业使用、修改与分发，分发时保留版权与许可声明。 |
 
 ## 使用边界
 
@@ -193,8 +194,8 @@ vasp-skill/
 
 ## 开源协议
 
-本项目采用 **MIT License**，允许商业使用、修改与分发；分发时须保留版权与许可声明。
+本项目采用 [MIT License](LICENSE)，允许商业使用、修改与分发；分发时须保留版权与许可声明。
 
-> ⚠️ 当前项目**未附带 `LICENSE` 文件**。若要对外发布，请在项目根目录补一份标准 MIT 许可证全文（含版权所有者与年份），再把本节的许可证名链接过去。
+**适用范围**：MIT 仅覆盖本 skill 自身的代码与文档（`SKILL.md`、`README.md`、`scripts/` 下的自带脚本、`references/` 下的自撰文档）。`references/articles/` 收录的文章与 `scripts/reference/` 收集的第三方脚本**版权归各自原作者**，不在 MIT 范围内，对外分发前请自行核实其授权。
 
 **免责声明**：本项目提供 VASP 计算工作流与报错诊断支持，不替代你对科学问题的独立判断；不附带任何 VASP 官方文件（`POTCAR` 等），使用者需自行取得合法的 VASP 授权与赝势。
