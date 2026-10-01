@@ -40,6 +40,8 @@ scripts/
 └── post/              ← 后处理与衍生量（规划位）：键长配位、收敛判定、能垒
 ```
 
+> ⚠️ **大文件画图不要内联**：`vasprun.xml`（几百 MB～数 GB）、`DOSCAR`、`CHGCAR` 不要用 read/grep 读进上下文——既撑爆上下文又取不全。`plot/` 里落库的是**可复用**的画图脚本；一次性需求直接**按需生成独立脚本**交给用户本地运行，脚本把 PNG/SVG 与中间 CSV 落盘，再据结果图解读。
+
 ## 四、已收录并跑通的脚本
 
 `--selftest` 覆盖情况：`gen_inputs.py`、`search_kb.py`、`add_article.py` 与 `parse/` 三项均已支持；

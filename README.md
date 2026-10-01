@@ -34,7 +34,7 @@ VASP 的坑很少写在参数表里，而是藏在「这一步为什么错、该
 | 粘来一段 OUTCAR / stdout 报错 | 先定位阶段（初始化 / SCF / 离子步 / 后处理 / 编译），再给成因和可执行的改法，并说明重跑后看什么确认 |
 | 想算结构优化、能带、DOS、声子、热导率、热电…… | 给完整流程：先后步骤、每步关键参数表、KPOINTS 密度、POTCAR 元素、提交与验证方式 |
 | 手上只有结构文件，要凑齐四个输入文件 | 直接生成 `INCAR` / `KPOINTS` / `POSCAR` / `POTCAR`，可按本机 POTCAR 库与 `map.json` 自动选势变体 |
-| 有 `vasprun.xml` / `DOSCAR` / `OUTCAR` / `COHPCAR.lobster` 想看图 | 出 DOS / 能带 / 收敛曲线 / COHP / 热导率等高清图，坐标与单位标清 |
+| 有 `vasprun.xml` / `DOSCAR` / `OUTCAR` / `COHPCAR.lobster` 想看图 | 大文件读不进上下文，改为**生成一个本地可跑的 Python 画图脚本**（DOS / 能带 / 收敛曲线 / COHP / 热导率），你自己运行、助手解读结果图 |
 | 算完不知道体系是金属还是半导体 | 用 `EENTRO / 原子数` 判断，并给出该换的 `ISMEAR` 与 `SIGMA` |
 | 论文算例参数看不出来、教程看完就忘 | 收录进知识库并提炼进 `errors.md` / `workflows.md`，之后关键词一搜就能命中 |
 | 单位、常数、Linux 命令记不住 | `constants.md` 换算表与 `linux.md` 命令速查，写参数、做后处理时随手查 |
@@ -62,7 +62,9 @@ python scripts/gen_inputs.py -s structure.cif -w opt --potcar-root /path/to/PBE 
 
 ### 三、输出数据画图
 
-拿到输出文件就能出图，并按约定统一：能量轴单位 eV、费米面定为 0、COHP 常画 `-COHP`（成键朝右）、收敛图横轴为离子步/电子步、能带图标高对称点。
+`vasprun.xml` 动辄几百 MB 甚至数 GB，`DOSCAR`、`CHGCAR` 也一样——这些文件**没法读进对话**（读进去既撑爆上下文又取不全）。所以这一项能力的产物不是一个凭空画出来的图，而是**一个能在你本机跑的 Python 画图脚本**：脚本自己读大文件，把图（PNG/SVG）和中间数据（CSV）写到磁盘，你再把结果图交给助手解读、让它按需改脚本。
+
+只有确实很小的文本（几 KB 的 `OSZICAR`、`COHPCAR.lobster`）才直接读。绘图约定统一：能量轴单位 eV、费米面定为 0、COHP 常画 `-COHP`（成键朝右）、收敛图横轴为离子步/电子步、能带图标高对称点。
 
 已覆盖：DOS / 分波 PDOS、能带、能量与力的收敛曲线、COHP / ICOHP、声子谱与晶格热导率、AIMD 轨迹分析（RDF / RMSD / VACF）、二维势能面与 MEP、应力应变曲线、外压迭代收敛、差分电荷与平面平均、形变势法迁移率、弹性矩阵与各向异性杨氏模量、STM 模拟、任意量的正则提取出图。
 
@@ -97,17 +99,23 @@ python scripts/gen_inputs.py -s structure.cif -w opt --potcar-root /path/to/PBE 
 
 ## 安装
 
-把 `vasp-skill/` 整个目录放进 DSH 的技能根目录即可 —— 用户级 `~/.dsh/skills/`（对所有工作区生效），或项目级 `<项目根>/.dsh/skills/`（只在该项目生效，且优先级更高）。
+把下面这句发给你使用的 AI 助手（Codex / Claude Code / DSH 等）：
 
-装好后可以直接说：
+```text
+帮我安装这个 skill：https://github.com/timeti123553/vasp-skill
+```
+
+安装完成后，可以直接说：
 
 ```text
 请使用 vasp.skill 帮我诊断下面这段报错：<粘贴 OUTCAR / stdout>
 请使用 vasp.skill 给出 Ag3SbS3 的结构优化 → 能带 → DOS 完整流程和输入文件。
-请使用 vasp.skill 把这批 vasprun.xml 画成 DOS 和能带图。
+请使用 vasp.skill 生成一个把 vasprun.xml 画成 DOS 和能带图的 Python 脚本。
 ```
 
-> ⚠️ **目录名与 frontmatter 的 `name` 必须是 kebab-case**（本 skill 用 `vasp-skill`）。
+> 手工安装：把仓库里的 `vasp-skill/` 目录放进技能根目录 —— 用户级 `~/.dsh/skills/`（对所有工作区生效），或项目级 `<项目根>/.dsh/skills/`（只在该项目生效，且优先级更高）。
+>
+> ⚠️ **目录名与 frontmatter 的 `name` 必须是 kebab-case**（本仓库用 `vasp-skill`）。
 > 写成含点的 `vasp.skill` 会被 DSH 拒绝加载，skill 根本不会出现在会话的可用列表里。
 > `vasp.skill` 是本项目的**对外展示名**，`vasp-skill` 是它的**技能标识符**。
 
@@ -176,8 +184,9 @@ vasp-skill/
 
 | 日期 | 类型 | 更新 | 用户价值 |
 | --- | --- | --- | --- |
-| 2026-10-01 | 更名与文档 | skill 由 `vasp-workflow` 更名为 `vasp-skill`（对外展示名 `vasp.skill`）；新增本 README，补齐能力、知识库、脚本与安装说明。 | 名称与文档对齐；新用户在安装前就能看清能力边界、脚本入口和 kebab-case 命名约束。 |
+| 2026-10-01 | 更名与文档 | skill 由 `vasp-workflow` 更名为 `vasp-skill`（对外展示名 `vasp.skill`）；新增本 README，补齐能力、知识库、脚本与安装说明；安装一节改为「发给 AI 助手的安装口令」。 | 名称与文档对齐；新用户在安装前就能看清能力边界与脚本入口，并能一句话完成安装。 |
 | 2026-10-01 | 协议 | 新增 `LICENSE`（标准 MIT 全文）与 README「开源协议」一节，并注明第三方收录内容不在 MIT 范围内。 | 明确授权范围：允许商业使用、修改与分发，分发时保留版权与许可声明。 |
+| 2026-10-01 | 画图能力 | 大文件（`vasprun.xml` / `DOSCAR` / `CHGCAR`）不再读进上下文，改为**生成可在本地运行的 Python 画图脚本**；SKILL.md、README、scripts/README.md 与示例口令同步更新。 | 几百 MB～数 GB 的输出文件也能出图，不受上下文长度限制；脚本留在本机可复用、可改参数。 |
 
 ## 使用边界
 

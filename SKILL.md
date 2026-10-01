@@ -1,6 +1,6 @@
 ---
 name: vasp-skill
-description: "VASP 计算工作流助手：诊断 VASP 报错、生成基于 VASP 的计算流程与输入文件、输出数据画图，可沉淀用户提供的 VASP 文章为可检索知识库。当用户（1）粘贴 VASP 报错信息 / OUTCAR / 日志片段，想定位错误发生在哪个阶段、原因是什么、如何解决；或（2）表述想算的性质（结构优化、静态自洽、能带、态密度、磁性、声子谱、晶格热导率 / 三声子四声子、热电 Seebeck / ZT、高通量筛选等），想要一套基于 VASP 的完整计算流程（先后步骤、关键 INCAR/KPOINTS/POTCAR 参数、提交与验证方法），并可用 pymatgen/ase 自动生成 VASP 输入文件；或（3）提供 VASP/LOBSTER 输出数据（vasprun.xml / DOSCAR / OSZICAR / OUTCAR / COHPCAR.lobster / 声子谱 / 热导率等），想把结果画成图（DOS、能带、收敛曲线、COHP/ICOHP 等）；或（4）提供 VASP 使用文章 / 教程 / 报错记录，希望收录进 skill 的知识库用于后续报错检索时使用。"
+description: "VASP 计算工作流助手：诊断 VASP 报错、生成基于 VASP 的计算流程与输入文件、输出数据画图，可沉淀用户提供的 VASP 文章为可检索知识库。当用户（1）粘贴 VASP 报错信息 / OUTCAR / 日志片段，想定位错误发生在哪个阶段、原因是什么、如何解决；或（2）表述想算的性质（结构优化、静态自洽、能带、态密度、磁性、声子谱、晶格热导率 / 三声子四声子、热电 Seebeck / ZT、高通量筛选等），想要一套基于 VASP 的完整计算流程（先后步骤、关键 INCAR/KPOINTS/POTCAR 参数、提交与验证方法），并可用 pymatgen/ase 自动生成 VASP 输入文件；或（3）提供 VASP/LOBSTER 输出数据（vasprun.xml / DOSCAR / OSZICAR / OUTCAR / COHPCAR.lobster / 声子谱 / 热导率等），想把结果画成图（DOS、能带、收敛曲线、COHP/ICOHP 等；`vasprun.xml`/`DOSCAR` 等大文件由 skill 生成可在本地运行的 Python 画图脚本，而不是读进上下文）；或（4）提供 VASP 使用文章 / 教程 / 报错记录，希望收录进 skill 的知识库用于后续报错检索时使用。"
 ---
 
 # vasp.skill
@@ -51,11 +51,12 @@ description: "VASP 计算工作流助手：诊断 VASP 报错、生成基于 VAS
   - 弹性矩阵与各向异性模量：`OUTCAR` 的 `TOTAL ELASTIC` 块（单位 kBar，下标顺序需重排）→ 3D 杨氏模量曲面或 2D 极坐标 `E(φ)`/`ν(φ)`，流程见 `references/workflows.md` 第十八节。
   - STM 模拟：带分解电荷密度 `PARCHG`（`LPARD=.TRUE.` + `NBMOD=-3` + `EINT`）→ `vaspkit 325` 恒定高度图，流程见 `references/workflows.md` 第十九节。
   - 任意量的提取与出图：`re` 正则抓 `OUTCAR` → `pandas` 整理 → 画图 + CSV（通用配方见 `references/workflows.md` 第二十节）。
-- **画图方式**：优先用 pymatgen 的 `DosPlotter` / `BSPlotter`（读 `vasprun.xml`）；其余（收敛曲线、COHPCAR.lobster 等）用 matplotlib 直接读文本绘制。交付高清 PNG/SVG，并标清坐标与单位。
+- ⚠️ **大文件不要读进上下文，改为生成画图脚本**：`vasprun.xml`（动辄几百 MB～数 GB）、`DOSCAR`、`CHGCAR` 这类大文件**不要**用 read/grep 读内容，也不要试图在对话里解析——既撑爆上下文又取不全。做法是**生成一个能在用户本机独立运行的 Python 脚本**，由用户自己跑；脚本把 PNG/SVG 与中间 CSV 写到磁盘，再据结果图解读。只有确实很小的文本（几 KB 的 `OSZICAR`、`COHPCAR.lobster`）才直接读。
+- **脚本怎么写**：`vasprun.xml` / `DOSCAR` 走 pymatgen `DosPlotter` / `BSPlotter`（流式解析、不占内存）；文件很大时用 `iterparse` 或先转 JSON 只抽需要的部分，必要时改用 `DOSCAR` / `EIGENVAL` 兜底。收敛曲线、`COHPCAR.lobster` 等纯文本用 matplotlib 直接读。脚本要有 `--help` 和可配参数（输入文件、输出目录、能量范围、费米面平移），交付带单位与高对称点标注的高清 PNG/SVG。
 - **关键约定**：能量轴单位 eV、费米面定为 0；COHP 常画 `-COHP`（成键朝右）；收敛图横轴为离子步 / 电子步；能带图标注高对称点。
-- 需要出图时，让用户提供对应输出文件（`vasprun.xml` / `DOSCAR` / `OSZICAR` / `OUTCAR` / `COHPCAR.lobster` 等）或路径。
+- 出脚本前先确认输入文件的路径与格式；脚本落地后告诉用户运行命令（如 `python plot_dos_band.py --vasprun vasprun.xml --out figures/`）以及该看什么。
 
-读取时机：收到「把 VASP/LOBSTER 输出数据画成图 / 可视化」请求时。
+读取时机：收到「把 VASP/LOBSTER 输出数据画成图 / 可视化」请求时——默认产物是**一份可在本地运行的画图脚本**加一张结果图。
 AIMD 轨迹分析（RDF / RMSD / VACF 等）类请求，读 `references/workflows.md` 第十一节。
 
 ### 4. 知识库与文章收录（支撑能力）
@@ -113,7 +114,7 @@ python scripts/gen_inputs.py -s POSCAR -w scf --potcar /path/to/PAW_PBE
 ## 资源
 
 - `scripts/README.md`：**脚本库索引与编写约定**——新增或查找脚本先读它；脚本按 `parse/`（输出解析）、`plot/`（画图）、`submit/`（提交与批处理）、`post/`（后处理）四个任务族收录，并标注依赖等级（L0 纯标准库 … L3 pymatgen/ase/phonopy）与典型命令。
-- 画图能力：用 pymatgen `DosPlotter`/`BSPlotter` 与 matplotlib 读 VASP/LOBSTER 输出作图；`scripts/plot/` 是该类任务的落位处，脚本落地后按 README 索引复用，未落地时按需内联绘制代码。
+- 画图能力：用 pymatgen `DosPlotter`/`BSPlotter` 与 matplotlib 读 VASP/LOBSTER 输出作图；`scripts/plot/` 是该类任务的落位处，脚本落地后按 README 索引复用，未落地时**按需生成独立的画图脚本**（不要把 `vasprun.xml`/`DOSCAR` 等大文件读进上下文）。
 - `references/errors.md`：VASP 报错分类与定位（初始化 / SCF / 离子步 / 内存 / ALAMODE / LOBSTER / **二维介电-光学等静默错误** / **社区错误集精选（SGRCON、PRICEL、NMAX_DEG、HSE NaN…）** 等）+ 高频注意事项，顶部含目录与检索提示。
 - `references/workflows.md`：各性质计算流程（opt/scf/band/dos/mag/声子/热导率/热电/高通量/**COHP 成键分析**/**AIMD 轨迹分析（VASP→GROMACS）**/**二维 PES 与 MEP（string 法）**/**理想拉伸-剪切（应力应变）**/**任意外压（vaspeqstress）**/**电荷密度可视化（总 / 差分 / 平面平均）**/**二维载流子迁移率（形变势）**/**弹性矩阵与各向异性杨氏模量**/**STM 模拟（VASPKIT）**/**波恩有效电荷与极化**/**Wannier90 紧束缚模型**/**AIMD 热稳定性验证**/**有效质量**/**杂化泛函（HSE06）能带**）+ 通用输出模板；第十七节指向 `tools.md`（外部脚本/工具速查），第十八节起依次为弹性矩阵、STM 模拟、OUTCAR 数据挖掘、ML 势数据集、SCPH 高温声子、波恩有效电荷、吸附能/迁移能垒、Wannier90 紧束缚模型、AIMD 热稳定性验证、有效质量、收敛性测试、杂化泛函（HSE06）能带。
 - `references/onboarding.md`：**入门地图**——写给做实验、刚开始做计算的人：计算与实验的对应、三种运行环境与 VASP 授权提醒、四个输入文件、起步参数、常用数据源，以及到其它文档的导航。
