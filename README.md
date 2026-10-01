@@ -55,12 +55,21 @@ VASP 的坑很少写在参数表里，而是藏在「这一步为什么错、该
 
 说清想算的性质，按 `references/workflows.md` 的「流程选择」判断主流程（优化 → 静态自洽 → 属性），并给出到位的参数表，而不是一串默认值。
 
-`gen_inputs.py` 支持 5 类流程：`opt`（结构优化）、`scf`（静态自洽）、`band`（能带，自动用原胞生成高对称 k 路径）、`dos`（态密度）、`mag`（磁性，含 `ISPIN`/`MAGMOM`/混合参数）。所有流程**默认共用 `ENCUT = 520 eV`** —— 中途改这个值会让 FFT 网格变化、上一步的 `CHGCAR` 维数对不上。
+**你只需要给两样东西**：晶体结构文件的路径，以及各元素 POTCAR 所在的位置（放 `<元素>/POTCAR` 的势库目录）。选势方案由技能自带的 `scripts/map.json` 决定（83 项、PBE 口径，如 `Fe`→`Fe_pv`），不需要你自己准备。给完这两样，就会在**结构文件同级目录**下生成一个以该结构命名的输入目录：
+
+| 你给的 | 自动生成的目录 | 里面是 |
+| --- | --- | --- |
+| `example/Si.cif` | `example/Si_opt/` | `INCAR` `KPOINTS` `POSCAR` `POTCAR` |
+| `example/Ag3SbS3.cif` | `example/Ag3SbS3_opt/` | 同上 |
+
+仓库里的 [`example/`](example) 就是这么生成的，可以直接对照。
 
 ```text
-python scripts/gen_inputs.py -s structure.cif -w opt --potcar-root /path/to/PBE --subdir
-#  → structure_opt/{INCAR,KPOINTS,POSCAR,POTCAR}
+python scripts/gen_inputs.py -s example/Si.cif -w opt --potcar-root <POTCAR库> --subdir
+#  → example/Si_opt/{INCAR,KPOINTS,POSCAR,POTCAR}
 ```
+
+`gen_inputs.py` 支持 5 类流程：`opt`（结构优化）、`scf`（静态自洽）、`band`（能带，自动用原胞生成高对称 k 路径）、`dos`（态密度）、`mag`（磁性，含 `ISPIN`/`MAGMOM`/混合参数）。所有流程**默认共用 `ENCUT = 520 eV`** —— 中途改这个值会让 FFT 网格变化、上一步的 `CHGCAR` 维数对不上。多步流程（opt → scf → band）各占一个 `--subdir` 目录，互不覆盖。
 
 ### 三、输出数据画图
 
