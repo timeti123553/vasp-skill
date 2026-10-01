@@ -64,11 +64,6 @@ VASP 的坑很少写在参数表里，而是藏在「这一步为什么错、该
 
 仓库里的 [`example/`](example) 就是这么生成的，可以直接对照。
 
-```text
-python scripts/gen_inputs.py -s example/Si.cif -w opt --potcar-root <POTCAR库> --subdir
-#  → example/Si_opt/{INCAR,KPOINTS,POSCAR,POTCAR}
-```
-
 `gen_inputs.py` 支持 5 类流程：`opt`（结构优化）、`scf`（静态自洽）、`band`（能带，自动用原胞生成高对称 k 路径）、`dos`（态密度）、`mag`（磁性，含 `ISPIN`/`MAGMOM`/混合参数）。所有流程**默认共用 `ENCUT = 520 eV`** —— 中途改这个值会让 FFT 网格变化、上一步的 `CHGCAR` 维数对不上。多步流程（opt → scf → band）各占一个 `--subdir` 目录，互不覆盖。
 
 ### 三、输出数据画图
