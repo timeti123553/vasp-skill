@@ -136,6 +136,7 @@ python scripts/add_article.py <URL> [--tag "xx"] [--proxy http://127.0.0.1:7890]
 - **`search_kb.py`**：会扫描 `scripts/**/*.py`（含子目录），所以**脚本的 docstring 也是可检索知识**——报错诊断时用关键词能直接搜到相关脚本的做法与参数经验。
 - **`references/errors.md` / `references/workflows.md`**：报错与流程正文；脚本是它们的可执行落点。
 - **知识沉淀**：从文章里提炼出的"某任务该跑什么脚本、参数怎么给"，应同时更新本节表格与 `references/*.md` 对应条目，避免只埋在文章里。
+- **本地约定**：只对某台机器/某个课题组成立的事实（势库路径、`map.json` 选势口径、固定 `ENCUT`/k 点、队列系统、机器坑）写进 **`references/local/`**，**不要混进 `references/*.md` 的通用条目**——通用文档是要随 skill 分发出去的，本机信息不是。
 
 ## 八、新增脚本清单（自查）
 

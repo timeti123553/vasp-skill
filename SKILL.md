@@ -1,11 +1,21 @@
 ---
 name: vasp-skill
-description: "VASP 计算工作流助手：诊断 VASP 报错、生成基于 VASP 的计算流程与输入文件、输出数据画图，可沉淀用户提供的 VASP 文章为可检索知识库。当用户（1）粘贴 VASP 报错信息 / OUTCAR / 日志片段，想定位错误发生在哪个阶段、原因是什么、如何解决；或（2）表述想算的性质（结构优化、静态自洽、能带、态密度、磁性、声子谱、晶格热导率 / 三声子四声子、热电 Seebeck / ZT、高通量筛选等），想要一套基于 VASP 的完整计算流程（先后步骤、关键 INCAR/KPOINTS/POTCAR 参数、提交与验证方法），并可用 pymatgen/ase 自动生成 VASP 输入文件；或（3）提供 VASP/LOBSTER 输出数据（vasprun.xml / DOSCAR / OSZICAR / OUTCAR / COHPCAR.lobster / 声子谱 / 热导率等），想把结果画成图（DOS、能带、收敛曲线、COHP/ICOHP 等；`vasprun.xml`/`DOSCAR` 等大文件由 skill 生成可在本地运行的 Python 画图脚本，而不是读进上下文）；或（4）提供 VASP 使用文章 / 教程 / 报错记录，希望收录进 skill 的知识库用于后续报错检索时使用。"
+description: "VASP 计算工作流助手：诊断 VASP 报错、生成基于 VASP 的计算流程与输入文件、输出数据画图，可沉淀用户提供的 VASP 文章为可检索知识库。当用户（1）粘贴 VASP 报错信息 / OUTCAR / 日志片段，想定位错误发生在哪个阶段、原因是什么、如何解决；或（2）表述想算的性质（结构优化、静态自洽、能带、态密度、磁性、声子谱、晶格热导率 / 三声子四声子、热电 Seebeck / ZT、高通量筛选等），想要一套基于 VASP 的完整计算流程（先后步骤、关键 INCAR/KPOINTS/POTCAR 参数、提交与验证方法），并可用 pymatgen/ase 自动生成 VASP 输入文件；或（3）提供 VASP/LOBSTER 输出数据（vasprun.xml / DOSCAR / OSZICAR / OUTCAR / COHPCAR.lobster / 声子谱 / 热导率等），想把结果画成图（DOS、能带、收敛曲线、COHP/ICOHP 等；`vasprun.xml`/`DOSCAR` 等大文件由 skill 生成可在本地运行的 Python 画图脚本，而不是读进上下文）；或（4）提供 VASP 使用文章 / 教程 / 报错记录，希望收录进 skill 的知识库用于后续报错检索时使用；或（5）希望 skill 记住本机环境与课题组的参数惯例（POTCAR 库路径、选势口径、ENCUT/k 点习惯、常踩的坑等），写进 `references/local/` 供后续会话直接复用。"
 ---
 
 # vasp.skill
 
 面向计算材料科研的 VASP 工作流助手，覆盖**三大能力**：**VASP 报错诊断**、**VASP 计算流程生成（含输入文件生成）** 和 **VASP 输出数据画图**（另有知识库与文章收录作为支撑）。
+
+## 本地约定：`references/local/`（动手前先读）
+
+`references/local/` 存放**跨会话需要记住的本地事实**——本机环境（VASP 可执行文件、提交方式、并行规模、POTCAR 库路径与选势口径）和用户/课题组的参数惯例。这不是自动记忆，而是**一个固定位置 + 一条固定规矩**，内容都在用户能看、能改、能删的 markdown 里。
+
+- **读（每次动手前）**：接到「生成输入文件 / 诊断报错 / 出图」类任务时，先看 `references/local/machine.md` 与 `references/local/conventions.md`。**读到了就直接沿用，不要让用户重复交代**；文件不存在、为空、或某项没写，就跳过并照常询问——**绝不要凭空编造本机信息**（编错的势库路径或队列系统比空白有害得多）。
+- **写（学到稳定事实时）**：凡「下次还用得上」的事实——势库路径、`map.json` 选势变体、固定的 `ENCUT`/k 点密度、队列系统、某个反复踩的坑——追加写进对应文件，并**明确告诉用户写了什么、写在哪个文件**，方便他核对和修改。
+- **不写**：一次性的计算结果、临时路径、本次会话已明确且不会再用的事。
+- **别滥写**：不是每轮都要留痕。只有确实是稳定事实、且下次确实会用上时才写；拿不准就问用户要不要记下来。
+- ⚠️ 该目录是**用户自己的**信息，不属于技能本体。若用户要分享/上传本 skill，提醒他先清空该目录。
 
 ## 核心能力
 
@@ -115,6 +125,7 @@ python scripts/gen_inputs.py -s POSCAR -w scf --potcar /path/to/PAW_PBE
 
 - `scripts/README.md`：**脚本库索引与编写约定**——新增或查找脚本先读它；脚本按 `parse/`（输出解析）、`plot/`（画图）、`submit/`（提交与批处理）、`post/`（后处理）四个任务族收录，并标注依赖等级（L0 纯标准库 … L3 pymatgen/ase/phonopy）与典型命令。
 - 画图能力：用 pymatgen `DosPlotter`/`BSPlotter` 与 matplotlib 读 VASP/LOBSTER 输出作图；`scripts/plot/` 是该类任务的落位处，脚本落地后按 README 索引复用，未落地时**按需生成独立的画图脚本**（不要把 `vasprun.xml`/`DOSCAR` 等大文件读进上下文）。
+- `references/local/`：**本机与课题组的持久约定**（跨会话记住你的势库路径、选势口径、参数习惯、机器坑）。`machine.md` 记环境、`conventions.md` 记参数惯例；动手前先读，学到稳定事实就回写。该目录属于用户自己的信息，分享前需清空。
 - `references/errors.md`：VASP 报错分类与定位（初始化 / SCF / 离子步 / 内存 / ALAMODE / LOBSTER / **二维介电-光学等静默错误** / **社区错误集精选（SGRCON、PRICEL、NMAX_DEG、HSE NaN…）** 等）+ 高频注意事项，顶部含目录与检索提示。
 - `references/workflows.md`：各性质计算流程（opt/scf/band/dos/mag/声子/热导率/热电/高通量/**COHP 成键分析**/**AIMD 轨迹分析（VASP→GROMACS）**/**二维 PES 与 MEP（string 法）**/**理想拉伸-剪切（应力应变）**/**任意外压（vaspeqstress）**/**电荷密度可视化（总 / 差分 / 平面平均）**/**二维载流子迁移率（形变势）**/**弹性矩阵与各向异性杨氏模量**/**STM 模拟（VASPKIT）**/**波恩有效电荷与极化**/**Wannier90 紧束缚模型**/**AIMD 热稳定性验证**/**有效质量**/**杂化泛函（HSE06）能带**）+ 通用输出模板；第十七节指向 `tools.md`（外部脚本/工具速查），第十八节起依次为弹性矩阵、STM 模拟、OUTCAR 数据挖掘、ML 势数据集、SCPH 高温声子、波恩有效电荷、吸附能/迁移能垒、Wannier90 紧束缚模型、AIMD 热稳定性验证、有效质量、收敛性测试、杂化泛函（HSE06）能带。
 - `references/onboarding.md`：**入门地图**——写给做实验、刚开始做计算的人：计算与实验的对应、三种运行环境与 VASP 授权提醒、四个输入文件、起步参数、常用数据源，以及到其它文档的导航。

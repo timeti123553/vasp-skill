@@ -27,7 +27,7 @@ VASP 的坑很少写在参数表里，而是藏在「这一步为什么错、该
 
 它也不假装什么都知道：命中的知识库条目会说明出处，命不中的会说命不中，然后按「阶段定位 → 成因分类 → 排查」给出结构化方案，而不是硬套一个模板。
 
-它也不是一份写完就定死的手册。你交给它的每篇文章、每段报错、每一条课题组内部的参数惯例，都会被提炼回 `errors.md` / `workflows.md` 与 `scripts/`；用得越久，它对你常算的体系、常用的势库、乃至这台机器的脾气就越熟。所以**它不是一开始就最合手，而是会跟着你的使用慢慢长成适合你的样子**。
+它也不是装好就定死的手册。`references/local/` 就是留给它「记住你」的位置：你的 POTCAR 库在哪、选势口径是什么、组里固定用多密的 k 点、哪台机器上有什么坑——凡是跨会话还用得上的事实都记在这里，下次不必重复交代。这不是黑箱里的自动记忆，而是**一个固定位置 + 一条固定规矩**：每次动手前先读，学到稳定事实就回写；内容全在你眼皮底下的 markdown 里，能看、能改、能删。收录的文章与踩过的报错则提炼回 `errors.md` / `workflows.md`，知识库因此越用越厚。
 
 ## 它能帮你解决什么
 
@@ -85,6 +85,7 @@ python scripts/gen_inputs.py -s structure.cif -w opt --potcar-root /path/to/PBE 
 | `references/linux.md` / `performance.md` / `constants.md` | 命令速查；时间标度律与 `LREAL`/`ALGO`/`NPAR`/`KPAR` 取舍；单位换算集中备查 |
 | `references/tools.md` | 外部脚本与工具功能速查（VASPKIT / VESTA / GROMACS、`idealdeform.sh`、`vaspeqstress.sh`、`chgdiff.pl`…） |
 | `references/articles/` | **95 篇**收录文章，带来源 URL、抓取时间与题录 |
+| `references/local/` | **本机与课题组的持久约定**：`machine.md` 记环境（VASP 可执行文件、提交方式、POTCAR 库路径与选势口径），`conventions.md` 记参数惯例。属于你自己的信息，分享前请清空 |
 
 ## 内置脚本
 
@@ -161,7 +162,8 @@ vasp-skill/
 │   ├── onboarding.md            # 入门地图（写给做实验、刚上手计算的人）
 │   ├── incar.md / potcar.md     # 参数速查 / 选势指南
 │   ├── linux.md / performance.md / constants.md / tools.md
-│   └── articles/                # 文章知识库（95 篇，可检索）
+│   ├── articles/                # 文章知识库（95 篇，可检索）
+│   └── local/                   # 本机与课题组的持久约定（machine.md / conventions.md）
 └── scripts/
     ├── README.md                # 脚本库索引与编写约定
     ├── gen_inputs.py            # 生成 INCAR/KPOINTS/POSCAR/POTCAR     [L3]
@@ -189,6 +191,7 @@ vasp-skill/
 | 2026-10-01 | 更名与文档 | skill 由 `vasp-workflow` 更名为 `vasp-skill`（对外展示名 `vasp.skill`）；新增本 README，补齐能力、知识库、脚本与安装说明；安装一节改为「发给 AI 助手的安装口令」。 | 名称与文档对齐；新用户在安装前就能看清能力边界与脚本入口，并能一句话完成安装。 |
 | 2026-10-01 | 协议 | 新增 `LICENSE`（标准 MIT 全文）与 README「开源协议」一节，并注明第三方收录内容不在 MIT 范围内。 | 明确授权范围：允许商业使用、修改与分发，分发时保留版权与许可声明。 |
 | 2026-10-01 | 画图能力 | 大文件（`vasprun.xml` / `DOSCAR` / `CHGCAR`）不再读进上下文，改为**生成可在本地运行的 Python 画图脚本**；SKILL.md、README、scripts/README.md 与示例口令同步更新。 | 几百 MB～数 GB 的输出文件也能出图，不受上下文长度限制；脚本留在本机可复用、可改参数。 |
+| 2026-10-01 | 本地约定 | 新增 `references/local/`（`machine.md` / `conventions.md`）与 SKILL.md 的「动手前先读、学到稳定事实就回写」规矩；README 相应描述改为与机制一致。 | 势库路径、选势口径、参数习惯、机器坑不必反复交代，跨会话直接复用；内容是可读可改可删的 markdown，分享前一键清空。 |
 
 ## 使用边界
 
