@@ -1,0 +1,12 @@
+#===============================================================================
+# 参考脚本（原样收集 · 未验证 · 未运行）
+# 来源文章: articles/20260930-VASP计算二维材料的载流子迁移率.md
+# 原文链接: https://mp.weixin.qq.com/s/_d4hx-QO3nqNeRe9M4MUPA
+# 用途    : 把一个应变目录里的 opt → scf → band 串起来跑，并沿途复制 CONTCAR/WAVECAR
+# 依赖    : PBS 作业系统 + mpiexec + VASP
+# 功能说明: references/tools.md 三.3（本目录只放源码文本，说明以那里为准）
+# 抓取质量: 原网页代码块**丢失换行与缩进** —— 下面正文是原样保存的文本，
+#           只能读逻辑，不能直接执行。
+#===============================================================================
+
+#!/bin/bash#PBS -N mobility#PBS -l nodes=1:ppn=16#PBS -m abe#PBS -j n##PBS -o job.log##PBS -e job.err#PBS -l walltime=120:00:00cd $PBS_O_WORKDIRdate "+01 Today's date is: %D. The time execution %T" >> time.infompirun -np 16 /opt/soft/strainvasp5.4.4/vasp.5.4.4/build/std/vasp > logdate "+02 Today's date is: %D. The time finish %T" >> time.infocp ./CONTCAR ./2_scf/POSCARcd ./2_scf/date "+01 Today's date is: %D. The time execution %T" >> time.infompirun /opt/soft/strainvasp5.4.4/vasp.5.4.4/build/std/vasp > logdate "+02 Today's date is: %D. The time finish %T" >> time.infocp ./CONTCAR ./band/POSCARcp ./WAVECAR ./band/cd ./band/date "+01 Today's date is: %D. The time execution %T" >> time.infompirun -np 16 /opt/soft/strainvasp5.4.4/vasp.5.4.4/build/std/vasp > logdate "+02 Today's date is: %D. The time finish %T" >> time.info

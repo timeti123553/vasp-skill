@@ -1,0 +1,18 @@
+# =============================================================================
+# 参考脚本（原样收集 · 未验证 · 未运行）
+# 来源文章: articles/20261001-vasprun_xml_to_json_file_天帝君豪的个人博客.md
+# 原文链接: https://tiandijunhao.github.io/2020/07/10/grep-config-to-json-from-vasprunxml/
+# 用途    : 逐帧读取 vasprun.xml 的能量/晶格/位置/受力/应力，写成 FitSNAP 训练数据集 JSON
+# 依赖    : numpy（原文为 python2 风格，含 np.mat）
+# 抓取质量: 原网页代码块丢失换行与缩进 —— 下面正文是**原样保存的文本**，只能读逻辑，不能直接执行；
+#           稳健等价实现见 workflows.md 第二十一节（iterparse 按标签解析）
+# 逻辑摘要:
+#   1) 读 PPOSCAR 第 6/7 行 → 得到每个原子的元素符号列表
+#   2) 逐行扫 vasprun.xml，命中 ' <varray name="forces" >' 作为每一帧的锚点
+#   3) 晶格 = 锚点上方 n-num_atom-14+i 三行；应力 = 锚点下方 n+num_atom+3+i 三行（×1000 → bar）
+#   4) 位置/受力 = 锚点之后 num_atom 行；位置是分数坐标，需左乘晶格转成笛卡尔
+#   5) 能量 = n+num_atom+9 行；s_step / d_step 控制起始帧与抽样间隔
+#   6) 组装 Dataset → struc_inf → struc_data，json.dump 到 MD_<i>.json
+# =============================================================================
+
+import json import numpy as np #read energy lattice pos force stress from vasprun i=0 j=0 k=0 num_atom=0 force=[] s_step=1#int(input("starting step:\n")) d_step=1#int(input("interval of steps:\n"))#Dataset-->struc_inf-->data Dataset={} struc_inf={} struc_data={} struc_inf["Label:"]="SNAP dataset" struc_inf["LatticeStyle"]="angstrom" struc_inf["EnergyStyle"]="electronvolt" struc_inf["StressStyle"]="bar" struc_inf["AtomTypeStyle"]="chemicalsymbol" struc_inf["PositionsStyle"]="bar" struc_inf["ForcesStyle"]="electronvoltperangstrom"with open('PPOSCAR','r')as pposcar: text=pposcar.readlines() atom_list=[] atom_dict=[] one_list=['one']if text[5].strip()< text[6].strip():print('please check the input format of PPOSCAR')# for n in range(num_atom):# position0.append(text[n+7].split())else: num_class=text[5].strip().split(' ')print(num_class)for c in range(len(num_class)): num_atom=num_atom+int(text[6].strip().split(' ')[c])print(int(text[6].strip().split(' ')[c])) one_list[0]=num_class[c] atom_dict=one_list*(int(text[6].strip().split(' ')[c])) atom_list=atom_list+atom_dict # for n in range(num_atom):# position0.append(text[n+8].split())# print(num_atom)with open('vasprun.xml','r')as vasprun: text=vasprun.readlines() num_lines=len(text)for n in range(num_lines):# the original positions of atoms# if text[n] == " <varray name=\"positions\" >\n":# for m in range(num_atom):# position0.append(text[n+m+1].split())if text[n]==" <varray name=\"forces\" >\n": lattice=np.mat(np.zeros((3,3))) position=np.mat(np.zeros((num_atom,3))) force=np.mat(np.zeros((num_atom,3))) stress=np.mat(np.zeros((3,3))) i=i+1if i > s_step-1: j=j+1if((j-1)-d_step*((j-1)//d_step))==0: k=k+1#force.append(i)for lindex in np.arange(0,3,1): lattice_str=[float(lat)for lat in text[n-num_atom-14+lindex].split()[1:4]] lattice[lindex,:]=np.array(lattice_str) stress_str=[float(stre)for stre in text[n+num_atom+3+lindex].split()[1:4]]#print(stress_str) stress[lindex,:]=np.array(stress_str)*1000for m in range(num_atom): force_str=[float(f)for f in text[n+m+1].split()[1:4]] force[m,:]=np.array(force_str) position_str=[float(postr)for postr in text[n+m-num_atom-2].split()[1:4]] position_frac=np.array(position_str) position_cart=np.dot(lattice,position_frac.T) position[m,:]=position_cart struc_data["NumAtoms"]=num_atom struc_data["Lattice"]=lattice.tolist() struc_data["Energy"]=float(text[n+num_atom+9].split()[2]) struc_data["Stress"]=stress.tolist() struc_data["AtomTypes"]=atom_list struc_data["Positions"]=position.tolist() struc_data["Forces"]=force.tolist() struc_inf["Data"]=[struc_data] Dataset["Dataset"]=struc_inf config=json.dumps(Dataset) config_json=open("MD_{}.json".format(i),mode="w")print('# SNAP datasets',file=config_json)print(config, file=config_json)print("total_steps=",i)#print(j)print("output_steps=",k)
